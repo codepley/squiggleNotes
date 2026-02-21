@@ -1,73 +1,40 @@
-# React + TypeScript + Vite
+# SquiggleNotes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Your digital notebook for limitless creativity. Draw, write, and extract insights with AI.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Infinite Canvas:** A smooth, responsive drawing canvas with pen and eraser tools, customizable colors, and adjustable stroke sizes.
+- **AI-Powered Transcription & Insights:** Draw your notes and use the built-in Gemini AI integration to extract handwriting into digital text and generate contextual insights based on your notes.
+- **Organization & Search:** Keep your notes organized with unlimited nested folders. Use the unified search on the landing page or sidebar to instantly find notes by title, checking both note content and folder names.
+- **Landing Page Dashboard:** A beautiful, responsive landing page showing your most recent notes, providing quick access to notes and global search.
+- **Local Storage Memory:** All your strokes, folders, and settings are saved automatically to your local browser storage so you never lose your work.
+- **Modern UI:** Built with Tailwind CSS, offering a clean, premium, and responsive user experience.
 
-## React Compiler
+## 🚀 Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
 
-## Expanding the ESLint configuration
+2. **Configure AI (Optional but recommended):**
+   Create a `.env.local` file in the root directory and add your Google Gemini API key to enable handwriting extraction and insights:
+   ```env
+   VITE_GEMINI_API_KEY=your_api_key_here
+   ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+3. **Start the Development Server:**
+   ```bash
+   npm run dev
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+4. Open your browser and navigate to the localhost URL provided in your terminal.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🛠 Tech Stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- React 18+
+- TypeScript
+- Vite
+- Tailwind CSS v4
+- Google Gemini API (`@google/genai`)
