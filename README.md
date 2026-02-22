@@ -8,6 +8,7 @@ Your digital notebook for limitless creativity. Draw, write, and extract insight
 - **AI-Powered Transcription & Insights:** Draw your notes and use the built-in Gemini AI integration to extract handwriting into digital text and generate contextual insights based on your notes.
 - **Organization & Search:** Keep your notes organized with unlimited nested folders. Use the unified search on the landing page or sidebar to instantly find notes by title, checking both note content and folder names.
 - **Landing Page Dashboard:** A beautiful, responsive landing page showing your most recent notes, providing quick access to notes and global search.
+- **Calender & Task Tab:** A calender screen for users to add their tasks and reminders.
 - **Local Storage Memory:** All your strokes, folders, and settings are saved automatically to your local browser storage so you never lose your work.
 - **Modern UI:** Built with Tailwind CSS, offering a clean, premium, and responsive user experience.
 
@@ -37,4 +38,3 @@ Your digital notebook for limitless creativity. Draw, write, and extract insight
 - TypeScript
 - Vite
 - Tailwind CSS v4
-- Google Gemini API (`@google/genai`)
