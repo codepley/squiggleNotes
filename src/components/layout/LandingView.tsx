@@ -53,12 +53,8 @@ export default function LandingView({ folders, onSelectNote, onCreateFolder }: P
             {/* Navbar */}
             <div className="w-full px-8 py-5 flex items-center justify-start border-b border-gray-100 shrink-0 sticky top-0 bg-white/80 backdrop-blur-md z-10">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-xl shadow-sm">
-                        S
-                    </div>
-                    <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight m-0">
-                        squiggleNotes
-                    </h1>
+                    <img className="h-11 w-11" src="/public/logo.png"></img>
+                    <img className= "w-50 h-7" src="/public/Untitled-1-02.png"></img>
                 </div>
             </div>
 
@@ -93,12 +89,12 @@ export default function LandingView({ folders, onSelectNote, onCreateFolder }: P
                 {/* Hero / CTA Section */}
                 <div className="flex flex-col items-center mb-16 text-center max-w-2xl">
                     <p className="text-lg text-gray-500 mb-8 max-w-lg">
-                        Your digital notebook for limitless creativity. Draw, write, and extract insights with AI.
+                        Your AI digital notebook for limitless creativity.
                     </p>
 
                     <button
                         onClick={handleCreateNewClick}
-                        className="flex items-center gap-2 px-8 py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-semibold text-lg transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 cursor-pointer"
+                        className="flex  bg-indigo-500 items-center gap-2 px-8 py-4 hover:bg-indigo-600 text-white rounded-xl font-semibold text-lg transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5 cursor-pointer"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
