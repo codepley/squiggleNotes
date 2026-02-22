@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import DocumentCanvas from "./components/canvas/DocumentCanvas";
 import type { DocumentCanvasHandle } from "./components/canvas/DocumentCanvas";
 import DigitalInsightsView from "./components/canvas/DigitalInsightsView";
+import TextEditor from "./components/Highlighter/TextEditor";
 import Sidebar from "./components/layout/Sidebar";
 import Topbar from "./components/layout/Topbar";
 import LandingView from "./components/layout/LandingView";
@@ -50,7 +51,7 @@ function App() {
     }, [activeNoteId]);
 
     // AI & View State
-    const [viewMode, setViewMode] = useState<"canvas" | "insights">("canvas");
+    const [viewMode, setViewMode] = useState<"canvas" | "insights" | "text">("canvas");
     const [isProcessingAI, setIsProcessingAI] = useState(false);
 
     // Zoom State
@@ -336,7 +337,7 @@ function App() {
 
                         {/* The canvas occupies the remaining height below the Topbar */}
                         <div className="flex-1 relative overflow-hidden">
-                            {viewMode === 'canvas' ? (
+                            {viewMode === 'canvas' && (
                                 <DocumentCanvas
                                     ref={canvasRef}
                                     key={activeNoteId} // <--- CRITICAL: Forces full unmount/mount on note switch
@@ -349,7 +350,9 @@ function App() {
                                     zoom={zoom}
                                     onHistoryStateChange={handleHistoryStateChange}
                                 />
-                            ) : (
+                            )}
+
+                            {viewMode === 'insights' && (
                                 <DigitalInsightsView
                                     noteId={activeNoteId}
                                     digitalText={currentState?.digitalText}
@@ -357,6 +360,12 @@ function App() {
                                     isProcessing={isProcessingAI}
                                     zoom={zoom}
                                 />
+                            )}
+
+                            {viewMode === 'text' && (
+                                <div className="h-full">
+                                    <TextEditor />
+                                </div>
                             )}
                         </div>
                     </div>

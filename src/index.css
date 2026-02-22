@@ -25,3 +25,25 @@
         }
     }
 }
+
+/* Highlighter and editor helper styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer;
+    transition: all .12s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:hover { box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
+
+.editor:focus {
+    outline: none;
+    box-shadow: 0 0 0 6px rgba(99,102,241,0.06);
+}
+
+.highlight { padding: 0 2px; border-radius: 2px; }

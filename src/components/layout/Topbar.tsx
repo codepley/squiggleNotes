@@ -8,8 +8,8 @@ interface Props {
     setPenColor: (c: string) => void;
     penSize: number;
     setPenSize: (s: number) => void;
-    viewMode: "canvas" | "insights";
-    setViewMode: (mode: "canvas" | "insights") => void;
+    viewMode: "canvas" | "insights" | "text";
+    setViewMode: (mode: "canvas" | "insights" | "text") => void;
     onRunAI: () => void;
     isProcessingAI: boolean;
     zoom: number;
@@ -49,6 +49,12 @@ export default function Topbar({
                         onClick={() => setViewMode('canvas')}
                     >
                         ✏️ Draw
+                    </button>
+                    <button
+                        className={`px-3 py-1.5 bg-transparent border-none rounded-md text-[13px] font-medium cursor-pointer transition-all duration-200 ${viewMode === 'text' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setViewMode('text')}
+                    >
+                        ✍️ Text
                     </button>
                     <button
                         className={`px-3 py-1.5 bg-transparent border-none rounded-md text-[13px] font-medium cursor-pointer transition-all duration-200 ${viewMode === 'insights' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
