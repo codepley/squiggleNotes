@@ -110,14 +110,14 @@ export default function DayAgenda({ selectedDate, tasks, onAddTask, onToggleTask
                             placeholder="Task title..."
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
-                            className="w-full bg-white px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 font-medium"
+                            className="w-full bg-white text-gray-500 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2 font-medium"
                             autoFocus
                         />
                         <textarea
                             placeholder="Description (optional)"
                             value={newTaskDesc}
                             onChange={(e) => setNewTaskDesc(e.target.value)}
-                            className="w-full bg-white px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3 resize-none h-16"
+                            className="w-full bg-white  text-gray-600 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3 resize-none h-16"
                         />
                         <div className="flex gap-2 justify-end">
                             <button

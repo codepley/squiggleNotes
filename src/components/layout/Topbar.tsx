@@ -201,6 +201,8 @@ export default function Topbar({
                                     <option value="ruled">Ruled</option>
                                     <option value="dotted">Dotted</option>
                                     <option value="blank">Blank</option>
+
+
                                 </select>
                                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,11 +269,6 @@ export default function Topbar({
                             </div>
                         </>
                     )}
-
-                    {/* Profile Placeholder */}
-                    <button className="w-8 h-8 shrink-0 rounded-full bg-indigo-600 text-white cursor-pointer font-bold text-xs flex items-center justify-center shadow-md ml-1 border-2 border-white ring-1 ring-gray-200 overflow-hidden hover:scale-105 transition-transform" title="Profile">
-                        S
-                    </button>
                 </div>
             </div>
         </div>
