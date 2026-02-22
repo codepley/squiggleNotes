@@ -4,7 +4,7 @@ export type Stroke = {
     points: Point[];
     color: string;
     size: number;
-    tool: "pen" | "eraser";
+    tool: "pen" | "eraser" | "highlighter";
 };
 
 export const COLORS = [

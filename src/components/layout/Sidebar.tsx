@@ -1,15 +1,17 @@
 import { useState } from "react";
 import type { Folder } from "../../data/mock/sidebarData";
+import type { CalendarTask } from "../../data/calendar/types";
 
 interface Props {
     folders: Folder[];
     activeNoteId: string | null;
+    tasks: CalendarTask[];
     onSelectNote: (id: string) => void;
     onCreateFolder: (parentId: string | null) => void;
     onCreateNote: (folderId: string) => void;
-    onRenameFolder: (folderId: string, newName: string) => void;
+    onRenameFolder: (folderId: string, currentName: string) => void;
     onDeleteFolder: (folderId: string) => void;
-    onRenameNote: (noteId: string, newName: string) => void;
+    onRenameNote: (noteId: string, currentName: string) => void;
     onGoHome: () => void;
 }
 
@@ -19,9 +21,9 @@ interface FolderNodeProps {
     onSelectNote: (id: string) => void;
     onCreateFolder: (parentId: string | null) => void;
     onCreateNote: (folderId: string) => void;
-    onRenameFolder: (folderId: string, newName: string) => void;
+    onRenameFolder: (folderId: string, currentName: string) => void;
     onDeleteFolder: (folderId: string) => void;
-    onRenameNote: (noteId: string, newName: string) => void;
+    onRenameNote: (noteId: string, currentName: string) => void;
     expandedSet: Set<string>;
     toggleFolder: (id: string) => void;
     depth?: number;
@@ -56,8 +58,7 @@ function FolderNode({
                 </button>
                 <div className="flex gap-1 opacity-0 transition-opacity duration-200 pr-2 group-hover:opacity-100">
                     <button className="bg-transparent border-none cursor-pointer px-1 py-0.5 rounded text-gray-500 text-xs hover:bg-gray-300 hover:text-gray-900" onClick={() => {
-                        const newName = prompt("Enter new folder name:", folder.name);
-                        if (newName && newName !== folder.name) onRenameFolder(folder.id, newName);
+                        onRenameFolder(folder.id, folder.name);
                     }} title="Rename Folder">✏️</button>
                     <button className="bg-transparent border-none cursor-pointer px-1 py-0.5 rounded text-gray-500 text-xs hover:bg-gray-300 hover:text-gray-900" onClick={() => {
                         if (confirm(`Delete folder "${folder.name}" and all contents?`)) {
@@ -91,10 +92,7 @@ function FolderNode({
                                     className="bg-transparent border-none cursor-pointer p-1 rounded text-gray-400 hover:bg-white hover:text-gray-900 shadow-sm"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        const newName = prompt("Enter new note name:", note.title);
-                                        if (newName && newName !== note.title) {
-                                            onRenameNote(note.id, newName);
-                                        }
+                                        onRenameNote(note.id, note.title);
                                     }}
                                     title="Rename Note"
                                 >
@@ -130,6 +128,7 @@ function FolderNode({
 export default function Sidebar({
     folders,
     activeNoteId,
+    tasks,
     onSelectNote,
     onCreateFolder,
     onCreateNote,
@@ -139,6 +138,15 @@ export default function Sidebar({
     onGoHome
 }: Props) {
     const [searchQuery, setSearchQuery] = useState("");
+
+    // Calculate today's tasks
+    const todayStr = (() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
+    const todaysTasks = tasks.filter(t => t.date === todayStr);
+    const todayTotal = todaysTasks.length;
+    const todayCompleted = todaysTasks.filter(t => t.completed).length;
 
     // Generate an initial set containing ALL folder IDs (including nested) so they are open by default
     const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
@@ -167,8 +175,31 @@ export default function Sidebar({
 
     const normalize = (text: string) => text.toLowerCase();
 
+    // Helper to extract timestamp from IDs like "f-1708888888" or "n-1708888888"
+    const getTimestamp = (id: string) => {
+        const parts = id.split('-');
+        if (parts.length > 1) {
+            const ts = parseInt(parts[1], 10);
+            if (!isNaN(ts)) return ts;
+        }
+        return 0; // Legacy mock data without timestamps will go to bottom
+    };
+
+    const sortedFolders = (() => {
+        const sortTree = (fs: Folder[]): Folder[] => {
+            return [...fs]
+                .sort((a, b) => getTimestamp(b.id) - getTimestamp(a.id))
+                .map(f => ({
+                    ...f,
+                    notes: [...f.notes].sort((a, b) => getTimestamp(b.id) - getTimestamp(a.id)),
+                    subfolders: f.subfolders ? sortTree(f.subfolders) : []
+                }));
+        };
+        return sortTree(folders);
+    })();
+
     const filteredFolders = (() => {
-        if (!searchQuery.trim()) return folders;
+        if (!searchQuery.trim()) return sortedFolders;
         const query = normalize(searchQuery);
 
         const filterTree = (fs: Folder[]): Folder[] | null => {
@@ -194,7 +225,7 @@ export default function Sidebar({
             return result.length > 0 ? result : null;
         };
 
-        return filterTree(folders) || [];
+        return filterTree(sortedFolders) || [];
     })();
 
     return (
@@ -210,7 +241,7 @@ export default function Sidebar({
                 </div>
 
                 <button
-                    className={`w-full text-left px-3 py-2 mb-4 flex items-center gap-2 rounded-md font-medium transition-colors ${activeNoteId === null
+                    className={`w-full text-left px-3 py-2 mb-2 flex items-center gap-2 rounded-md font-medium cursor-pointer transition-colors ${activeNoteId === null
                         ? 'bg-blue-100 text-blue-700'
                         : 'bg-transparent text-gray-700 hover:bg-gray-200'
                         }`}
@@ -220,6 +251,27 @@ export default function Sidebar({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                     Home Overview
+                </button>
+
+                <button
+                    className={`w-full text-left px-3 py-2 mb-4 flex items-center justify-between rounded-md font-medium cursor-pointer transition-colors ${activeNoteId === 'calendar'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-transparent text-gray-700 hover:bg-gray-200'
+                        }`}
+                    onClick={() => onSelectNote('calendar')}
+                >
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm">📅</span>
+                        Calendar & Tasks
+                    </div>
+                    {todayTotal > 0 && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${todayCompleted === todayTotal
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                            : 'bg-red-50 text-red-600 border-red-200'
+                            }`}>
+                            {todayCompleted}/{todayTotal}
+                        </span>
+                    )}
                 </button>
 
                 <div className="mb-4">

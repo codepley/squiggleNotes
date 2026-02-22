@@ -5,6 +5,9 @@ import DigitalInsightsView from "./components/canvas/DigitalInsightsView";
 import Sidebar from "./components/layout/Sidebar";
 import Topbar from "./components/layout/Topbar";
 import LandingView from "./components/layout/LandingView";
+import PromptModal from "./components/ui/PromptModal";
+import CalendarView from "./components/calendar/CalendarView";
+import type { CalendarTask } from "./data/calendar/types";
 import { mockFolders } from "./data/mock/sidebarData";
 import type { Folder, Note } from "./data/mock/sidebarData";
 import { COLORS, PEN_SIZES } from "./data/canvas/types";
@@ -14,13 +17,14 @@ import { extractBase64ImageFromStrokes, generateInsightsFromImage } from "./serv
 interface NoteState {
     strokes: Stroke[];
     pageCount: number;
+    pageStyle?: "ruled" | "dotted" | "blank";
     digitalText?: string;
     aiInsights?: string;
 }
 
 function App() {
     // Toolbar state
-    const [tool, setTool] = useState<"pen" | "eraser">("pen");
+    const [tool, setTool] = useState<"pen" | "eraser" | "highlighter">("pen");
     const [penColor, setPenColor] = useState(COLORS[0]);
     const [penSize, setPenSize] = useState(PEN_SIZES[1]);
 
@@ -37,6 +41,20 @@ function App() {
     useEffect(() => {
         localStorage.setItem("SQUIGGLE_FOLDERS", JSON.stringify(folders));
     }, [folders]);
+
+    // Calendar Tasks State
+    const [tasks, setTasks] = useState<CalendarTask[]>(() => {
+        try {
+            const saved = localStorage.getItem("SQUIGGLE_TASKS");
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        localStorage.setItem("SQUIGGLE_TASKS", JSON.stringify(tasks));
+    }, [tasks]);
 
     // Sidebar state
     const [activeNoteId, setActiveNoteId] = useState<string | null>(() => {
@@ -61,7 +79,6 @@ function App() {
     const [canUndo, setCanUndo] = useState(false);
     const [canRedo, setCanRedo] = useState(false);
 
-    // Get active note title for the topbar
     const activeNoteTitle = (() => {
         let title = "Untitled Note";
         const findTitle = (fs: Folder[]) => {
@@ -78,6 +95,21 @@ function App() {
         findTitle(folders);
         return title;
     })();
+
+    // Force Render trigger for noteMemory changes that need immediate UI updates
+    const [, forceRender] = useState({});
+
+    // Modal state for all name prompts
+    const [promptConfig, setPromptConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        defaultValue?: string;
+        onSubmit: (value: string) => void;
+    }>({
+        isOpen: false,
+        title: "",
+        onSubmit: () => { }
+    });
 
     // Note Memory (Dictionary mapping NoteId -> NoteState)
     // We use a ref so saving strokes doesn't trigger a re-render of the whole App shell
@@ -97,101 +129,124 @@ function App() {
         localStorage.setItem("SQUIGGLE_NOTES", JSON.stringify(noteMemory.current));
     };
 
-    const handleSaveNote = useCallback((strokes: Stroke[], pageCount: number) => {
+    const handleSaveNote = useCallback((strokes: Stroke[], pageCount: number, pageStyle?: "ruled" | "dotted" | "blank") => {
         if (!activeNoteId) return;
         const currentState = noteMemory.current[activeNoteId];
+        const hasStyleChanged = pageStyle !== undefined && pageStyle !== currentState?.pageStyle;
+
         noteMemory.current[activeNoteId] = {
             ...(currentState || {}),
             strokes,
-            pageCount
+            pageCount,
+            ...(pageStyle && { pageStyle })
         };
         saveNoteMemory();
+
+        if (hasStyleChanged) {
+            forceRender({});
+        }
     }, [activeNoteId]);
 
     const handleCreateFolder = useCallback((parentId: string | null) => {
-        const folderName = prompt("Enter folder name:");
-        if (!folderName) return;
+        setPromptConfig({
+            isOpen: true,
+            title: "Enter folder name:",
+            defaultValue: "New Folder",
+            onSubmit: (folderName) => {
+                const newNoteId = `n-${Date.now()}`;
+                const newNote: Note = {
+                    id: newNoteId,
+                    title: "Untitled Note",
+                    updatedAt: "Just now"
+                };
 
-        const newNoteId = `n-${Date.now()}`;
-        const newNote: Note = {
-            id: newNoteId,
-            title: "Untitled Note",
-            updatedAt: "Just now"
-        };
+                const newFolder: Folder = {
+                    id: `f-${Date.now()}`,
+                    name: folderName,
+                    notes: [newNote],
+                    subfolders: []
+                };
 
-        const newFolder: Folder = {
-            id: `f-${Date.now()}`,
-            name: folderName,
-            notes: [newNote],
-            subfolders: []
-        };
+                if (parentId === null) {
+                    setFolders(prev => [...prev, newFolder]);
+                    setActiveNoteId(newNote.id);
+                    return;
+                }
 
-        if (parentId === null) {
-            setFolders(prev => [...prev, newFolder]);
-            setActiveNoteId(newNote.id);
-            return;
-        }
-
-        setFolders(prev => {
-            const insertInto = (fs: Folder[]): Folder[] => {
-                return fs.map(f => {
-                    if (f.id === parentId) {
-                        return { ...f, subfolders: [...(f.subfolders || []), newFolder] };
-                    }
-                    if (f.subfolders) {
-                        return { ...f, subfolders: insertInto(f.subfolders) };
-                    }
-                    return f;
+                setFolders(prev => {
+                    const insertInto = (fs: Folder[]): Folder[] => {
+                        return fs.map(f => {
+                            if (f.id === parentId) {
+                                return { ...f, subfolders: [...(f.subfolders || []), newFolder] };
+                            }
+                            if (f.subfolders) {
+                                return { ...f, subfolders: insertInto(f.subfolders) };
+                            }
+                            return f;
+                        });
+                    };
+                    return insertInto(prev);
                 });
-            };
-            return insertInto(prev);
-        });
 
-        setActiveNoteId(newNote.id);
+                setActiveNoteId(newNote.id);
+            }
+        });
     }, []);
 
     const handleCreateNote = useCallback((folderId: string) => {
-        const noteName = prompt("Enter note name:", "Untitled Note");
-        if (!noteName) return;
+        setPromptConfig({
+            isOpen: true,
+            title: "Enter note name:",
+            defaultValue: "Untitled Note",
+            onSubmit: (noteName) => {
+                const newNote: Note = {
+                    id: `n-${Date.now()}`,
+                    title: noteName,
+                    updatedAt: "Just now"
+                };
 
-        const newNote: Note = {
-            id: `n-${Date.now()}`,
-            title: noteName,
-            updatedAt: "Just now"
-        };
-
-        setFolders(prev => {
-            const insertInto = (fs: Folder[]): Folder[] => {
-                return fs.map(f => {
-                    if (f.id === folderId) {
-                        return { ...f, notes: [...f.notes, newNote] };
-                    }
-                    if (f.subfolders) {
-                        return { ...f, subfolders: insertInto(f.subfolders) };
-                    }
-                    return f;
+                setFolders(prev => {
+                    const insertInto = (fs: Folder[]): Folder[] => {
+                        return fs.map(f => {
+                            if (f.id === folderId) {
+                                return { ...f, notes: [...f.notes, newNote] };
+                            }
+                            if (f.subfolders) {
+                                return { ...f, subfolders: insertInto(f.subfolders) };
+                            }
+                            return f;
+                        });
+                    };
+                    return insertInto(prev);
                 });
-            };
-            return insertInto(prev);
-        });
 
-        setActiveNoteId(newNote.id);
+                setActiveNoteId(newNote.id);
+            }
+        });
     }, []);
 
-    const handleRenameFolder = useCallback((folderId: string, newName: string) => {
-        setFolders(prev => {
-            const renameIn = (fs: Folder[]): Folder[] => {
-                return fs.map(f => {
-                    if (f.id === folderId) {
-                        return { ...f, name: newName };
-                    }
-                    if (f.subfolders) {
-                        return { ...f, subfolders: renameIn(f.subfolders) };
-                    }
-                    return f;
+    const handleRenameFolder = useCallback((folderId: string, currentName: string) => {
+        setPromptConfig({
+            isOpen: true,
+            title: "Enter new folder name:",
+            defaultValue: currentName,
+            onSubmit: (newName) => {
+                if (newName === currentName) return;
+                setFolders(prev => {
+                    const renameIn = (fs: Folder[]): Folder[] => {
+                        return fs.map(f => {
+                            if (f.id === folderId) {
+                                return { ...f, name: newName };
+                            }
+                            if (f.subfolders) {
+                                return { ...f, subfolders: renameIn(f.subfolders) };
+                            }
+                            return f;
+                        });
+                    };
+                    return renameIn(prev);
                 });
-            };
-            return renameIn(prev);
+            }
         });
     }, []);
 
@@ -212,24 +267,32 @@ function App() {
         });
     }, []);
 
-    const handleRenameNote = useCallback((noteId: string, newName: string) => {
-        setFolders(prev => {
-            const renameIn = (fs: Folder[]): Folder[] => {
-                return fs.map(f => {
-                    const hasNote = f.notes.some(n => n.id === noteId);
-                    if (hasNote) {
-                        return {
-                            ...f,
-                            notes: f.notes.map(n => n.id === noteId ? { ...n, title: newName } : n)
-                        };
-                    }
-                    if (f.subfolders) {
-                        return { ...f, subfolders: renameIn(f.subfolders) };
-                    }
-                    return f;
+    const handleRenameNote = useCallback((noteId: string, currentName: string) => {
+        setPromptConfig({
+            isOpen: true,
+            title: "Enter new note name:",
+            defaultValue: currentName,
+            onSubmit: (newName) => {
+                if (newName === currentName) return;
+                setFolders(prev => {
+                    const renameIn = (fs: Folder[]): Folder[] => {
+                        return fs.map(f => {
+                            const hasNote = f.notes.some(n => n.id === noteId);
+                            if (hasNote) {
+                                return {
+                                    ...f,
+                                    notes: f.notes.map(n => n.id === noteId ? { ...n, title: newName } : n)
+                                };
+                            }
+                            if (f.subfolders) {
+                                return { ...f, subfolders: renameIn(f.subfolders) };
+                            }
+                            return f;
+                        });
+                    };
+                    return renameIn(prev);
                 });
-            };
-            return renameIn(prev);
+            }
         });
     }, []);
 
@@ -240,7 +303,7 @@ function App() {
 
         // Ensure state exists before mutating
         if (!noteMemory.current[activeNoteId]) {
-            noteMemory.current[activeNoteId] = { strokes: [], pageCount: 1 };
+            noteMemory.current[activeNoteId] = { strokes: [], pageCount: 1, pageStyle: "ruled" };
         }
 
         const strokes = noteMemory.current[activeNoteId].strokes || [];
@@ -299,11 +362,30 @@ function App() {
                     onSelectNote={setActiveNoteId}
                     onCreateFolder={handleCreateFolder}
                 />
+            ) : activeNoteId === 'calendar' ? (
+                <>
+                    <Sidebar
+                        folders={folders}
+                        activeNoteId={activeNoteId}
+                        tasks={tasks}
+                        onSelectNote={setActiveNoteId}
+                        onCreateFolder={handleCreateFolder}
+                        onCreateNote={handleCreateNote}
+                        onRenameFolder={handleRenameFolder}
+                        onDeleteFolder={handleDeleteFolder}
+                        onRenameNote={handleRenameNote}
+                        onGoHome={handleGoHome}
+                    />
+                    <div className="flex-1 min-w-0">
+                        <CalendarView tasks={tasks} onTasksChange={setTasks} />
+                    </div>
+                </>
             ) : (
                 <>
                     <Sidebar
                         folders={folders}
                         activeNoteId={activeNoteId}
+                        tasks={tasks}
                         onSelectNote={setActiveNoteId}
                         onCreateFolder={handleCreateFolder}
                         onCreateNote={handleCreateNote}
@@ -332,6 +414,10 @@ function App() {
                             onRedo={handleRedo}
                             canUndo={canUndo}
                             canRedo={canRedo}
+                            pageStyle={currentState?.pageStyle || "ruled"}
+                            onPageStyleChange={(style) => {
+                                handleSaveNote(currentState?.strokes || [], currentState?.pageCount || 1, style);
+                            }}
                         />
 
                         {/* The canvas occupies the remaining height below the Topbar */}
@@ -345,7 +431,8 @@ function App() {
                                     penSize={penSize}
                                     initialStrokes={currentState?.strokes || []}
                                     initialPageCount={currentState?.pageCount || 1}
-                                    onSave={handleSaveNote}
+                                    pageStyle={currentState?.pageStyle || "ruled"}
+                                    onSave={(strokes, pageCount) => handleSaveNote(strokes, pageCount, currentState?.pageStyle || "ruled")}
                                     zoom={zoom}
                                     onHistoryStateChange={handleHistoryStateChange}
                                 />
@@ -362,6 +449,10 @@ function App() {
                     </div>
                 </>
             )}
+            <PromptModal
+                {...promptConfig}
+                onClose={() => setPromptConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }

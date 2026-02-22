@@ -3,13 +3,14 @@ import type { Stroke, Point } from "../../data/canvas/types";
 import { getPointFromEvent } from "./utils";
 
 interface Props {
-    tool: "pen" | "eraser";
+    tool: "pen" | "eraser" | "highlighter";
     penColor: string;
     penSize: number;
     initialStrokes?: Stroke[];
     initialPageCount?: number;
     onSave?: (strokes: Stroke[], pageCount: number) => void;
     zoom?: number;
+    pageStyle?: "ruled" | "dotted" | "blank";
     onHistoryStateChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
@@ -28,6 +29,7 @@ const DocumentCanvas = forwardRef<DocumentCanvasHandle, Props>(({
     initialPageCount = 1,
     onSave,
     zoom = 1,
+    pageStyle = "ruled",
     onHistoryStateChange
 }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,10 +56,25 @@ const DocumentCanvas = forwardRef<DocumentCanvasHandle, Props>(({
         // Draw all strokes
         strokes.forEach((s) => {
             ctx.beginPath();
-            ctx.globalCompositeOperation =
-                s.tool === "eraser" ? "destination-out" : "source-over";
-            ctx.strokeStyle = s.tool === "eraser" ? "rgba(0,0,0,1)" : s.color;
-            ctx.lineWidth = s.tool === "eraser" ? s.size * 4 : s.size;
+            if (s.tool === "eraser") {
+                ctx.globalCompositeOperation = "destination-out";
+                ctx.strokeStyle = "rgba(0,0,0,1)";
+                ctx.lineWidth = s.size * 4;
+            } else if (s.tool === "highlighter") {
+                ctx.globalCompositeOperation = "multiply"; // Best blending for highlighters
+                // Convert hex to rgba to add transparency
+                const hex = s.color.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
+                ctx.lineWidth = s.size * 3; // Highlighter is wider
+            } else {
+                ctx.globalCompositeOperation = "source-over";
+                ctx.strokeStyle = s.color;
+                ctx.lineWidth = s.size;
+            }
+
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
 
@@ -174,6 +191,14 @@ const DocumentCanvas = forwardRef<DocumentCanvasHandle, Props>(({
                 ctx.globalCompositeOperation = "destination-out";
                 ctx.strokeStyle = "rgba(0,0,0,1)";
                 ctx.lineWidth = penSize * 4;
+            } else if (tool === "highlighter") {
+                ctx.globalCompositeOperation = "multiply";
+                const hex = penColor.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
+                ctx.lineWidth = penSize * 3;
             } else {
                 ctx.globalCompositeOperation = "source-over";
                 ctx.strokeStyle = penColor;
@@ -183,7 +208,11 @@ const DocumentCanvas = forwardRef<DocumentCanvasHandle, Props>(({
             ctx.lineJoin = "round";
 
             const pressure = e.pressure !== undefined ? e.pressure : 0.5;
-            if (tool !== "eraser") ctx.lineWidth = penSize * (0.6 + pressure * 0.8);
+            if (tool === "pen") {
+                ctx.lineWidth = penSize * (0.6 + pressure * 0.8);
+            } else if (tool === "highlighter") {
+                ctx.lineWidth = (penSize * 3) * (0.8 + pressure * 0.4); // less pressure variance
+            }
 
             const prevPt = currentStroke.current[currentStroke.current.length - 2];
             ctx.moveTo(prevPt.x, prevPt.y);
@@ -237,17 +266,33 @@ const DocumentCanvas = forwardRef<DocumentCanvasHandle, Props>(({
 
                 {/* CSS Rendered Stack of Pages */}
                 <div className="flex flex-col gap-4 w-full">
-                    {pages.map((p) => (
-                        <div
-                            key={p}
-                            className="w-full h-[1056px] bg-white rounded shadow-sm relative overflow-hidden shrink-0"
-                            style={{
+                    {pages.map((p) => {
+                        let backgroundStyle = {};
+                        if (pageStyle === "ruled") {
+                            backgroundStyle = {
                                 backgroundImage: `linear-gradient(to right, transparent 79px, #fca5a5 79px, #fca5a5 81px, transparent 81px), linear-gradient(#e5e7eb 1px, transparent 1px)`,
                                 backgroundSize: '100% 100%, 100% 32px',
                                 backgroundPosition: '0 0, 0 32px'
-                            }}
-                        />
-                    ))}
+                            };
+                        } else if (pageStyle === "dotted") {
+                            backgroundStyle = {
+                                backgroundImage: `radial-gradient(#c8c8c8 1px, transparent 1px)`,
+                                backgroundSize: '24px 24px',
+                                backgroundPosition: '0 0'
+                            };
+                        } else {
+                            // blank
+                            backgroundStyle = {};
+                        }
+
+                        return (
+                            <div
+                                key={p}
+                                className="w-full h-[1056px] bg-white rounded shadow-sm relative overflow-hidden shrink-0"
+                                style={backgroundStyle}
+                            />
+                        );
+                    })}
                 </div>
 
                 {/* Absolute Canvas Overlaying the Pages */}
@@ -255,7 +300,7 @@ const DocumentCanvas = forwardRef<DocumentCanvasHandle, Props>(({
                     ref={canvasRef}
                     className="absolute top-0 left-0 w-full z-10 touch-none pointer-events-auto"
                     style={{
-                        cursor: tool === "eraser" ? "cell" : "crosshair",
+                        cursor: tool === "eraser" ? "cell" : (tool === "highlighter" ? "text" : "crosshair"),
                         height: `${pageCount * PAGE_HEIGHT}px`, // Canvas grows precisely with pages
                     }}
                     onPointerDown={handlePointerDown}
